@@ -12,12 +12,14 @@ public final class MinecraftServiceImpl implements MinecraftService {
     private final ChatService chatService = new ChatServiceImpl();
     private final NetworkService networkService = new NetworkServiceImpl();
     private final MultiplayerService multiplayerService = new MultiplayerServiceImpl();
+    private final InventoryService inventoryService = new InventoryServiceImpl();
 
     @Override @NotNull public WorldService getWorld() { return worldService; }
     @Override @NotNull public PlayerService getPlayer() { return playerService; }
     @Override @NotNull public ChatService getChat() { return chatService; }
     @Override @NotNull public NetworkService getNetwork() { return networkService; }
     @Override @NotNull public MultiplayerService getMultiplayer() { return multiplayerService; }
+    @Override @NotNull public InventoryService getInventory() { return inventoryService; }
 
     @Override
     @NotNull public String getVersion() {

@@ -1,5 +1,10 @@
 package pl.caltonek.avalanche.api.service.impl;
 
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.network.PacketByteBuf;
+import net.minecraft.network.packet.c2s.common.CustomPayloadC2SPacket;
+import net.minecraft.network.packet.CustomPayload;
+import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.NotNull;
 import org.luaj.vm2.LuaValue;
 import pl.caltonek.avalanche.api.object.PacketObject;
@@ -23,6 +28,45 @@ public final class NetworkServiceImpl implements NetworkService {
         if (packet.getType().isEmpty()) {
             throw new NetworkServiceException("Cannot send empty packet type.");
         }
+        final var handler = MinecraftClient.getInstance().getNetworkHandler();
+        if (handler == null) {
+            throw new NetworkServiceException("Cannot send packet: network handler is unavailable.");
+        }
+    }
+
+    @Override
+    public void sendCustomPayload(@NotNull final String channel, @NotNull final byte[] data) {
+        final var handler = MinecraftClient.getInstance().getNetworkHandler();
+        if (handler == null) {
+            throw new NetworkServiceException("Cannot send custom payload: network handler is unavailable.");
+        }
+
+        try {
+            final Identifier channelId = Identifier.of(channel);
+            handler.sendPacket(new CustomPayloadC2SPacket(new CustomPayload() {
+                @Override
+                public Id<? extends CustomPayload> getId() {
+                    return new Id<>(channelId);
+                }
+            }));
+        } catch (Exception e) {
+            throw new NetworkServiceException("Failed to send custom payload to channel: " + channel, e);
+        }
+    }
+
+    @Override
+    public boolean isConnected() {
+        return MinecraftClient.getInstance().getNetworkHandler() != null;
+    }
+
+    @Override
+    public int getLatency() {
+        final var client = MinecraftClient.getInstance();
+        if (client.player == null || client.getNetworkHandler() == null) {
+            return -1;
+        }
+        final var entry = client.getNetworkHandler().getPlayerListEntry(client.player.getUuid());
+        return entry != null ? entry.getLatency() : -1;
     }
 
     @Override

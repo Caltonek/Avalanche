@@ -20,6 +20,7 @@ public final class Game {
             case "world" -> this.minecraftService.getWorld();
             case "network" -> this.minecraftService.getNetwork();
             case "multiplayer" -> this.minecraftService.getMultiplayer();
+            case "inventory" -> this.minecraftService.getInventory();
             case "minecraft" -> this.minecraftService;
             default -> null;
         };

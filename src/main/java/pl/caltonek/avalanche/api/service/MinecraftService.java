@@ -9,6 +9,7 @@ public interface MinecraftService {
     @NotNull ChatService getChat();
     @NotNull NetworkService getNetwork();
     @NotNull MultiplayerService getMultiplayer();
+    @NotNull InventoryService getInventory();
     @NotNull String getVersion();
     @Nullable String getCurrentScreen();
     int getFps();

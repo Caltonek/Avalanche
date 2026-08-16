@@ -1,11 +1,15 @@
 package pl.caltonek.avalanche.api.service.impl;
 
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.screen.TitleScreen;
+import net.minecraft.client.gui.screen.multiplayer.MultiplayerScreen;
 import net.minecraft.client.network.PlayerListEntry;
+import net.minecraft.text.Text;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import pl.caltonek.avalanche.api.object.PlayerObject;
 import pl.caltonek.avalanche.api.service.MultiplayerService;
+import pl.caltonek.avalanche.exceptions.MultiplayerServiceException;
 
 import java.util.Collections;
 import java.util.List;
@@ -21,6 +25,12 @@ public final class MultiplayerServiceImpl implements MultiplayerService {
     }
 
     @Override
+    public boolean isSingleplayer() {
+        final var client = MinecraftClient.getInstance();
+        return client.isIntegratedServerRunning();
+    }
+
+    @Override
     @Nullable
     public String getServerAddress() {
         final var client = MinecraftClient.getInstance();
@@ -31,6 +41,16 @@ public final class MultiplayerServiceImpl implements MultiplayerService {
             return "singleplayer";
         }
         return null;
+    }
+
+    @Override
+    @Nullable
+    public String getServerBrand() {
+        final var client = MinecraftClient.getInstance();
+        if (client.getNetworkHandler() == null) {
+            return null;
+        }
+        return client.getNetworkHandler().getBrand();
     }
 
     @Override
@@ -68,11 +88,63 @@ public final class MultiplayerServiceImpl implements MultiplayerService {
     }
 
     @Override
+    @Nullable
+    public PlayerObject getPlayerByUuid(@NotNull final UUID uuid) {
+        final var client = MinecraftClient.getInstance();
+        final var networkHandler = client.getNetworkHandler();
+
+        if (networkHandler == null) {
+            return null;
+        }
+
+        return networkHandler.getPlayerList()
+                .stream()
+                .filter(entry -> entry.getProfile().getId().equals(uuid))
+                .findFirst()
+                .map(this::mapToPlayerObject)
+                .orElse(null);
+    }
+
+    @Override
     public int getPlayerCount() {
         final var client = MinecraftClient.getInstance();
         final var networkHandler = client.getNetworkHandler();
 
         return networkHandler != null ? networkHandler.getPlayerList().size() : 0;
+    }
+
+    @Override
+    public int getLatency() {
+        final var client = MinecraftClient.getInstance();
+        if (client.player == null || client.getNetworkHandler() == null) {
+            return -1;
+        }
+        final PlayerListEntry entry = client.getNetworkHandler().getPlayerListEntry(client.player.getUuid());
+        return entry != null ? entry.getLatency() : -1;
+    }
+
+    @Override
+    public int getLatency(@NotNull final String name) {
+        final var player = getPlayer(name);
+        return player != null ? player.getLatency() : -1;
+    }
+
+    @Override
+    public void disconnect() {
+        disconnect("Disconnected via script");
+    }
+
+    @Override
+    public void disconnect(@NotNull final String reason) {
+        final var client = MinecraftClient.getInstance();
+        if (!isConnected()) {
+            throw new MultiplayerServiceException("Cannot disconnect: Client is not connected to any server.");
+        }
+
+        if (client.world != null) {
+            client.world.disconnect();
+        }
+        client.disconnect(new MultiplayerScreen(new TitleScreen()));
     }
 
     @NotNull
