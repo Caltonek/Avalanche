@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "id": "avalanche",
+  "version": "${version}",
+  "name": "Avalanche",
+  "description": "A scripting engine for creating and running custom scripts in Minecraft.",
+  "authors": [],
+  "contact": {},
+  "license": "All-Rights-Reserved",
+  "icon": "assets/avalanche/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "client": [
+      "pl.caltonek.avalanche.client.AvalancheClient"
+    ],
+    "main": [
+      "pl.caltonek.avalanche.Avalanche"
+    ]
+  },
+  "mixins": [
+    "avalanche.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "fabric-api": "*",
+    "minecraft": "${minecraft_version}"
+  }
+}
