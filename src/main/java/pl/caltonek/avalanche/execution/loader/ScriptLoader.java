@@ -2,6 +2,7 @@ package pl.caltonek.avalanche.execution.loader;
 
 import org.jetbrains.annotations.NotNull;
 import pl.caltonek.avalanche.exceptions.ScriptNotFoundException;
+import pl.caltonek.avalanche.path.AvalanchePaths;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -13,32 +14,19 @@ import java.util.stream.Stream;
 
 public final class ScriptLoader {
 
-    private final Path scriptsDirectory;
-
-    public ScriptLoader(@NotNull final Path scriptsDirectory) {
-        this.scriptsDirectory = scriptsDirectory;
-        createScriptsDirectory();
-    }
-
-    private void createScriptsDirectory() {
-        try {
-            Files.createDirectories(this.scriptsDirectory);
-        } catch (final IOException exception) {
-            throw new IllegalStateException("Unable to create Avalanche scripts directory.", exception);
-        }
-    }
+    public ScriptLoader() {}
 
     @NotNull
     public List<String> findAvailableScripts() {
-        if (!Files.exists(this.scriptsDirectory)) {
+        if (!Files.exists(AvalanchePaths.SCRIPTS_DIR)) {
             return Collections.emptyList();
         }
 
-        try (final Stream<Path> stream = Files.walk(this.scriptsDirectory)) {
+        try (final Stream<Path> stream = Files.walk(AvalanchePaths.SCRIPTS_DIR)) {
             return stream
                     .filter(Files::isRegularFile)
                     .filter(path -> path.getFileName().toString().endsWith(".lua"))
-                    .map(path -> this.scriptsDirectory.relativize(path).toString().replace('\\', '/'))
+                    .map(path -> AvalanchePaths.SCRIPTS_DIR.relativize(path).toString().replace('\\', '/'))
                     .collect(Collectors.toList());
         } catch (final IOException exception) {
             return Collections.emptyList();
@@ -48,7 +36,7 @@ public final class ScriptLoader {
     @NotNull
     public Path resolveScriptPath(@NotNull final String scriptName) {
         final String normalizedName = normalizeScriptName(scriptName);
-        final Path scriptPath = this.scriptsDirectory.resolve(normalizedName);
+        final Path scriptPath = AvalanchePaths.SCRIPTS_DIR.resolve(normalizedName);
 
         if (!Files.exists(scriptPath)) {
             throw new ScriptNotFoundException(normalizedName);
@@ -57,14 +45,13 @@ public final class ScriptLoader {
         return scriptPath;
     }
 
+    public boolean isUrl(@NotNull final String input) {
+        return input.startsWith("http://") || input.startsWith("https://");
+    }
+
     @NotNull
     public String normalizeScriptName(@NotNull final String scriptName) {
         final String formatted = scriptName.replace('\\', '/');
         return formatted.endsWith(".lua") ? formatted : formatted + ".lua";
-    }
-
-    @NotNull
-    public Path getScriptsDirectory() {
-        return this.scriptsDirectory;
     }
 }

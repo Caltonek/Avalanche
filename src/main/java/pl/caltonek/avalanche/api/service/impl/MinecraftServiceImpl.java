@@ -7,19 +7,26 @@ import pl.caltonek.avalanche.api.service.*;
 
 public final class MinecraftServiceImpl implements MinecraftService {
 
-    private final WorldService worldService = new WorldServiceImpl();
-    private final PlayerService playerService = new PlayerServiceImpl();
-    private final ChatService chatService = new ChatServiceImpl();
-    private final NetworkService networkService = new NetworkServiceImpl();
-    private final MultiplayerService multiplayerService = new MultiplayerServiceImpl();
-    private final InventoryService inventoryService = new InventoryServiceImpl();
+    private final WorldServiceImpl worldService = new WorldServiceImpl();
+    private final PlayersServiceImpl playersService = new PlayersServiceImpl();
+    private final ChatServiceImpl chatService = new ChatServiceImpl();
+    private final CommandServiceImpl commandService = new CommandServiceImpl();
+    private final NetworkServiceImpl networkService = new NetworkServiceImpl();
+    private final InventoryServiceImpl inventoryService = new InventoryServiceImpl();
+    private final UserInputServiceImpl inputService = new UserInputServiceImpl();
+    private final HttpServiceImpl httpService = new HttpServiceImpl();
+    private final RunServiceImpl runService = new RunServiceImpl();
 
     @Override @NotNull public WorldService getWorld() { return worldService; }
-    @Override @NotNull public PlayerService getPlayer() { return playerService; }
+    @Override @NotNull public PlayersService getPlayer() { return playersService; }
+    @Override @NotNull public PlayersService getPlayers() { return playersService; }
     @Override @NotNull public ChatService getChat() { return chatService; }
+    @Override @NotNull public CommandService getCommand() { return commandService; }
     @Override @NotNull public NetworkService getNetwork() { return networkService; }
-    @Override @NotNull public MultiplayerService getMultiplayer() { return multiplayerService; }
     @Override @NotNull public InventoryService getInventory() { return inventoryService; }
+    @Override @NotNull public UserInputService getInput() { return inputService; }
+    @Override @NotNull public HttpService getHttp() { return httpService; }
+    @Override @NotNull public RunService getRun() { return runService; }
 
     @Override
     @NotNull public String getVersion() {
@@ -37,13 +44,17 @@ public final class MinecraftServiceImpl implements MinecraftService {
         return MinecraftClient.getInstance().getCurrentFps();
     }
 
-    public void unregisterScriptListeners(@NotNull final String scriptName) {
-        ((ChatServiceImpl) this.chatService).unregisterListeners(scriptName);
-        ((NetworkServiceImpl) this.networkService).unregisterListeners(scriptName);
+    public void unregisterScriptListeners(@NotNull String scriptName) {
+        this.commandService.unregisterListeners(scriptName);
+        this.networkService.unregisterListeners(scriptName);
+    }
+
+    public void clearAllListeners() {
+        this.commandService.clearAllListeners();
+        this.networkService.clearAllListeners();
     }
 
     public void clearAllScriptListeners() {
-        ((ChatServiceImpl) this.chatService).clearAllListeners();
-        ((NetworkServiceImpl) this.networkService).clearAllListeners();
+        clearAllListeners();
     }
 }

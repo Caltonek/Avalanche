@@ -5,11 +5,16 @@ import org.jetbrains.annotations.Nullable;
 
 public interface MinecraftService {
     @NotNull WorldService getWorld();
-    @NotNull PlayerService getPlayer();
+    @NotNull PlayersService getPlayer();
+    @NotNull PlayersService getPlayers();
     @NotNull ChatService getChat();
+    @NotNull CommandService getCommand();
     @NotNull NetworkService getNetwork();
-    @NotNull MultiplayerService getMultiplayer();
     @NotNull InventoryService getInventory();
+    @NotNull UserInputService getInput();
+    @NotNull HttpService getHttp();
+    @NotNull RunService getRun();
+
     @NotNull String getVersion();
     @Nullable String getCurrentScreen();
     int getFps();

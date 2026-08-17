@@ -4,8 +4,8 @@ import org.jetbrains.annotations.NotNull;
 
 public final class ChatReceiveEvent extends CancellableEvent {
 
-    private String message;
-    private final String sender;
+    public String message;
+    public final String sender;
 
     public ChatReceiveEvent(@NotNull final String message, @NotNull final String sender) {
         this.message = message;

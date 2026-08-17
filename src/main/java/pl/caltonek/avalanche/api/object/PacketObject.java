@@ -1,14 +1,18 @@
 package pl.caltonek.avalanche.api.object;
 
+import net.minecraft.network.packet.Packet;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import java.util.Arrays;
 
 public record PacketObject(
         @NotNull String type,
-        byte[] data
+        byte[] data,
+        @Nullable Packet<?> rawPacket
 ) {
     @NotNull public String getType() { return type; }
     public byte[] getData() { return data; }
+    @Nullable public Packet<?> getRawPacket() { return rawPacket; }
 
     @Override
     public boolean equals(Object o) {

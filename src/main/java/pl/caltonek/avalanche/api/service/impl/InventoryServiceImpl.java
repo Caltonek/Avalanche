@@ -3,10 +3,12 @@ package pl.caltonek.avalanche.api.service.impl;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.item.ItemStack;
 import net.minecraft.registry.Registries;
+import net.minecraft.screen.slot.SlotActionType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import pl.caltonek.avalanche.api.object.ItemObject;
 import pl.caltonek.avalanche.api.service.InventoryService;
+import pl.caltonek.avalanche.api.signal.LuaSignal;
 import pl.caltonek.avalanche.exceptions.InventoryServiceException;
 
 import java.util.ArrayList;
@@ -14,6 +16,12 @@ import java.util.Collections;
 import java.util.List;
 
 public final class InventoryServiceImpl implements InventoryService {
+
+    public final LuaSignal Open = new LuaSignal("inventory.lifecycle.onopen");
+    public final LuaSignal Close = new LuaSignal("inventory.lifecycle.onclose");
+    public final LuaSignal SlotClick = new LuaSignal("inventory.slots.onslotclick");
+    public final LuaSignal ItemPickup = new LuaSignal("inventory.items.onitempickup");
+    public final LuaSignal ItemDrop = new LuaSignal("inventory.items.onitemdrop");
 
     @Override
     @Nullable
@@ -32,6 +40,8 @@ public final class InventoryServiceImpl implements InventoryService {
         return mapToItemObject(stack, slot);
     }
 
+    @Override @Nullable public ItemObject GetItem(int slot) { return getItem(slot); }
+
     @Override
     @Nullable
     public ItemObject getMainHand() {
@@ -42,6 +52,8 @@ public final class InventoryServiceImpl implements InventoryService {
 
         return mapToItemObject(player.getMainHandStack(), player.getInventory().selectedSlot);
     }
+
+    @Override @Nullable public ItemObject GetMainHand() { return getMainHand(); }
 
     @Override
     @Nullable
@@ -54,6 +66,8 @@ public final class InventoryServiceImpl implements InventoryService {
         return mapToItemObject(player.getOffHandStack(), 45);
     }
 
+    @Override @Nullable public ItemObject GetOffHand() { return getOffHand(); }
+
     @Override
     public int getSelectedSlot() {
         final var player = MinecraftClient.getInstance().player;
@@ -62,6 +76,8 @@ public final class InventoryServiceImpl implements InventoryService {
         }
         return player.getInventory().selectedSlot;
     }
+
+    @Override public int GetSelectedSlot() { return getSelectedSlot(); }
 
     @Override
     public void setSelectedSlot(final int slot) {
@@ -76,6 +92,8 @@ public final class InventoryServiceImpl implements InventoryService {
 
         player.getInventory().selectedSlot = slot;
     }
+
+    @Override public void SetSelectedSlot(int slot) { setSelectedSlot(slot); }
 
     @Override
     @NotNull
@@ -95,10 +113,56 @@ public final class InventoryServiceImpl implements InventoryService {
         return items;
     }
 
+    @Override @NotNull public List<ItemObject> GetItems() { return getItems(); }
+
+    @Override
+    public void clickSlot(int syncId, int slot, int button, SlotActionType actionType) {
+        final var client = MinecraftClient.getInstance();
+        if (client.interactionManager != null && client.player != null) {
+            client.interactionManager.clickSlot(syncId, slot, button, actionType, client.player);
+        }
+    }
+
+    @Override public void ClickSlot(int syncId, int slot, int button, SlotActionType actionType) { clickSlot(syncId, slot, button, actionType); }
+
+    @Override
+    public void dropItem(int slot, boolean dropAll) {
+        final var client = MinecraftClient.getInstance();
+        if (client.player != null && client.interactionManager != null) {
+            client.interactionManager.clickSlot(
+                    client.player.currentScreenHandler.syncId,
+                    slot,
+                    dropAll ? 1 : 0,
+                    SlotActionType.THROW,
+                    client.player
+            );
+        }
+    }
+
+    @Override public void DropItem(int slot, boolean dropAll) { dropItem(slot, dropAll); }
+
+    @Override
+    public void quickMove(int slot) {
+        final var client = MinecraftClient.getInstance();
+        if (client.player != null && client.interactionManager != null) {
+            client.interactionManager.clickSlot(
+                    client.player.currentScreenHandler.syncId,
+                    slot,
+                    0,
+                    SlotActionType.QUICK_MOVE,
+                    client.player
+            );
+        }
+    }
+
+    @Override public void QuickMove(int slot) { quickMove(slot); }
+
     @Override
     public boolean hasItem(@NotNull final String itemId) {
         return countItem(itemId) > 0;
     }
+
+    @Override public boolean HasItem(@NotNull String itemId) { return hasItem(itemId); }
 
     @Override
     public int countItem(@NotNull final String itemId) {
@@ -119,6 +183,14 @@ public final class InventoryServiceImpl implements InventoryService {
         }
         return totalCount;
     }
+
+    @Override public int CountItem(@NotNull String itemId) { return countItem(itemId); }
+
+    @Override @NotNull public LuaSignal getOpen() { return Open; }
+    @Override @NotNull public LuaSignal getClose() { return Close; }
+    @Override @NotNull public LuaSignal getSlotClick() { return SlotClick; }
+    @Override @NotNull public LuaSignal getItemPickup() { return ItemPickup; }
+    @Override @NotNull public LuaSignal getItemDrop() { return ItemDrop; }
 
     @NotNull
     private ItemObject mapToItemObject(@NotNull final ItemStack stack, final int slot) {

@@ -1,27 +1,22 @@
 package pl.caltonek.avalanche.api.service.impl;
 
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.network.PacketByteBuf;
+import net.minecraft.network.packet.Packet;
 import net.minecraft.network.packet.c2s.common.CustomPayloadC2SPacket;
 import net.minecraft.network.packet.CustomPayload;
 import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.NotNull;
-import org.luaj.vm2.LuaValue;
 import pl.caltonek.avalanche.api.object.PacketObject;
 import pl.caltonek.avalanche.api.service.NetworkService;
+import pl.caltonek.avalanche.api.signal.LuaSignal;
 import pl.caltonek.avalanche.exceptions.NetworkServiceException;
-import pl.caltonek.avalanche.execution.script.ScriptContext;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 public final class NetworkServiceImpl implements NetworkService {
 
-    private final Map<String, List<LuaValue>> sendPacketListeners = new ConcurrentHashMap<>();
-    private final Map<String, List<LuaValue>> receivePacketListeners = new ConcurrentHashMap<>();
+    public final LuaSignal PacketSend = new LuaSignal("network.packets.onpacketsend");
+    public final LuaSignal PacketReceive = new LuaSignal("network.packets.onpacketreceive");
+    public final LuaSignal ConnectedSignal = new LuaSignal("network.connection.onconnect");
+    public final LuaSignal DisconnectedSignal = new LuaSignal("network.connection.ondisconnect");
 
     @Override
     public void sendPacket(@NotNull final PacketObject packet) {
@@ -32,6 +27,16 @@ public final class NetworkServiceImpl implements NetworkService {
         if (handler == null) {
             throw new NetworkServiceException("Cannot send packet: network handler is unavailable.");
         }
+
+        if (packet.getRawPacket() instanceof Packet<?> mcPacket) {
+            handler.sendPacket(mcPacket);
+        } else {
+            throw new NetworkServiceException("Unsupported packet object format.");
+        }
+    }
+
+    public void SendPacket(@NotNull final PacketObject packet) {
+        sendPacket(packet);
     }
 
     @Override
@@ -54,9 +59,17 @@ public final class NetworkServiceImpl implements NetworkService {
         }
     }
 
+    public void SendCustomPayload(@NotNull final String channel, @NotNull final byte[] data) {
+        sendCustomPayload(channel, data);
+    }
+
     @Override
     public boolean isConnected() {
         return MinecraftClient.getInstance().getNetworkHandler() != null;
+    }
+
+    public boolean IsConnected() {
+        return isConnected();
     }
 
     @Override
@@ -69,49 +82,20 @@ public final class NetworkServiceImpl implements NetworkService {
         return entry != null ? entry.getLatency() : -1;
     }
 
-    @Override
-    public void onSendPacket(@NotNull final LuaValue callback) {
-        if (!callback.isfunction()) {
-            throw new NetworkServiceException("Callback for onSendPacket must be a function.");
-        }
-        final String scriptName = ScriptContext.getCurrentScript();
-        if (scriptName != null) {
-            this.sendPacketListeners.computeIfAbsent(scriptName, k -> new CopyOnWriteArrayList<>()).add(callback);
-        }
+    public int GetLatency() {
+        return getLatency();
     }
 
-    @Override
-    public void onReceivePacket(@NotNull final LuaValue callback) {
-        if (!callback.isfunction()) {
-            throw new NetworkServiceException("Callback for onReceivePacket must be a function.");
-        }
-        final String scriptName = ScriptContext.getCurrentScript();
-        if (scriptName != null) {
-            this.receivePacketListeners.computeIfAbsent(scriptName, k -> new CopyOnWriteArrayList<>()).add(callback);
-        }
-    }
+    @Override @NotNull public LuaSignal getPacketSend() { return PacketSend; }
+    @Override @NotNull public LuaSignal getPacketReceive() { return PacketReceive; }
+    @Override @NotNull public LuaSignal getConnectedSignal() { return ConnectedSignal; }
+    @Override @NotNull public LuaSignal getDisconnectedSignal() { return DisconnectedSignal; }
 
     public void unregisterListeners(@NotNull final String scriptName) {
-        this.sendPacketListeners.remove(scriptName);
-        this.receivePacketListeners.remove(scriptName);
+
     }
 
     public void clearAllListeners() {
-        this.sendPacketListeners.clear();
-        this.receivePacketListeners.clear();
-    }
 
-    @NotNull
-    public List<LuaValue> getSendPacketListeners() {
-        final List<LuaValue> allListeners = new ArrayList<>();
-        this.sendPacketListeners.values().forEach(allListeners::addAll);
-        return allListeners;
-    }
-
-    @NotNull
-    public List<LuaValue> getReceivePacketListeners() {
-        final List<LuaValue> allListeners = new ArrayList<>();
-        this.receivePacketListeners.values().forEach(allListeners::addAll);
-        return allListeners;
     }
 }

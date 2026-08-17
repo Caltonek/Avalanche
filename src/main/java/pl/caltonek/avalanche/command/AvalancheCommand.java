@@ -1,10 +1,12 @@
 package pl.caltonek.avalanche.command;
 
 import com.mojang.brigadier.arguments.StringArgumentType;
+import com.mojang.brigadier.context.CommandContext;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
+import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.minecraft.command.CommandSource;
 import net.minecraft.text.Text;
 import org.jetbrains.annotations.NotNull;
@@ -30,13 +32,33 @@ public final class AvalancheCommand {
                                             final String script = StringArgumentType.getString(context, "script");
 
                                             try {
-                                                executionManager.execute(script);
-                                                context.getSource().sendFeedback(Text.literal("Started script: " + script));
+                                                final boolean reloaded = executionManager.execute(script);
+                                                final String action = reloaded ? "Reloaded" : "Started";
+                                                context.getSource().sendFeedback(Text.literal("§a" + action + " script: " + script));
                                                 return 1;
                                             } catch (final RuntimeException exception) {
                                                 context.getSource().sendFeedback(Text.literal("§c" + exception.getMessage()));
                                                 return 0;
                                             }
+                                        })
+                                )
+                        )
+                        .then(ClientCommandManager.literal("reload")
+                                .then(ClientCommandManager.argument("script", StringArgumentType.greedyString())
+                                        .suggests((context, builder) -> CommandSource.suggestMatching(
+                                                executionManager.getActiveScripts().stream().map(ScriptExecutor::getName),
+                                                builder
+                                        ))
+                                        .executes(context -> {
+                                            final String script = StringArgumentType.getString(context, "script");
+
+                                            if (!executionManager.isRunning(script)) {
+                                                context.getSource().sendFeedback(Text.literal("§cScript is not running: " + script));
+                                                return 0;
+                                            }
+
+                                            executeScript(context, executionManager, script);
+                                            return 1;
                                         })
                                 )
                         )
@@ -78,5 +100,16 @@ public final class AvalancheCommand {
                         )
                 )
         );
+    }
+
+    private static void executeScript(CommandContext<FabricClientCommandSource> context,
+                                      ScriptExecutionManager executionManager, String script) {
+        try {
+            final boolean reloaded = executionManager.execute(script);
+            final String action = reloaded ? "Reloaded" : "Started";
+            context.getSource().sendFeedback(Text.literal("§a" + action + " script: " + script));
+        } catch (final RuntimeException exception) {
+            context.getSource().sendFeedback(Text.literal("§c" + exception.getMessage()));
+        }
     }
 }

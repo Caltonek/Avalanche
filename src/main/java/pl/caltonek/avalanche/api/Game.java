@@ -13,16 +13,34 @@ public final class Game {
     }
 
     @Nullable
+    public String GetCurrentScreen() {
+        return this.minecraftService.getCurrentScreen();
+    }
+
+    @Nullable
+    public String GetVersion() {
+        return this.minecraftService.getVersion();
+    }
+
+    @Nullable
     public Object GetService(@NotNull final String serviceName) {
         return switch (serviceName.toLowerCase()) {
-            case "chat" -> this.minecraftService.getChat();
-            case "player" -> this.minecraftService.getPlayer();
-            case "world" -> this.minecraftService.getWorld();
-            case "network" -> this.minecraftService.getNetwork();
-            case "multiplayer" -> this.minecraftService.getMultiplayer();
-            case "inventory" -> this.minecraftService.getInventory();
-            case "minecraft" -> this.minecraftService;
+            case "players", "playerservice", "player" -> this.minecraftService.getPlayers();
+            case "userinputservice", "input", "inputservice" -> this.minecraftService.getInput();
+            case "httpservice", "http" -> this.minecraftService.getHttp();
+            case "runservice", "run" -> this.minecraftService.getRun();
+            case "chat", "chatservice" -> this.minecraftService.getChat();
+            case "command", "commandservice" -> this.minecraftService.getCommand();
+            case "workspace", "world", "worldservice" -> this.minecraftService.getWorld();
+            case "network", "networkservice" -> this.minecraftService.getNetwork();
+            case "inventory", "inventoryservice" -> this.minecraftService.getInventory();
+            case "minecraft", "minecraftservice" -> this.minecraftService;
             default -> null;
         };
+    }
+
+    @Nullable
+    public Object getService(@NotNull final String serviceName) {
+        return GetService(serviceName);
     }
 }

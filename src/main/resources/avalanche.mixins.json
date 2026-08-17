@@ -4,12 +4,17 @@
   "package": "pl.caltonek.avalanche.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
-    "ClientConnectionMixin"
+    "network.ClientConnectionMixin",
+    "player.LivingEntityMixin"
   ],
   "client": [
-    "ClientPlayerEntityMixin",
-    "ClientPlayNetworkHandlerMixin",
-    "MinecraftClientMixin"
+    "chat.ClientPlayNetworkHandlerMixin",
+    "input.KeyboardMixin",
+    "input.MouseMixin",
+    "minecraft.MinecraftClientMixin",
+    "player.ClientPlayerEntityMixin",
+    "player.ClientPlayerInteractionManagerMixin",
+    "world.ClientWorldMixin"
   ],
   "injectors": {
     "defaultRequire": 1

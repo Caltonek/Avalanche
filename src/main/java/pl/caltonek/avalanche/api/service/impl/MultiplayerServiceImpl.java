@@ -4,11 +4,12 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.TitleScreen;
 import net.minecraft.client.gui.screen.multiplayer.MultiplayerScreen;
 import net.minecraft.client.network.PlayerListEntry;
-import net.minecraft.text.Text;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.luaj.vm2.LuaValue;
 import pl.caltonek.avalanche.api.object.PlayerObject;
 import pl.caltonek.avalanche.api.service.MultiplayerService;
+import pl.caltonek.avalanche.client.AvalancheClient;
 import pl.caltonek.avalanche.exceptions.MultiplayerServiceException;
 
 import java.util.Collections;
@@ -146,6 +147,30 @@ public final class MultiplayerServiceImpl implements MultiplayerService {
         }
         client.disconnect(new MultiplayerScreen(new TitleScreen()));
     }
+
+    // Players
+    @Override public void onPlayerJoin(@NotNull LuaValue callback) { AvalancheClient.getEventManager().subscribe("multiplayer.players.onplayerjoin", callback); }
+    @Override public void onPlayerLeave(@NotNull LuaValue callback) { AvalancheClient.getEventManager().subscribe("multiplayer.players.onplayerleave", callback); }
+    @Override public void onPlayerSpawn(@NotNull LuaValue callback) { AvalancheClient.getEventManager().subscribe("multiplayer.players.onplayerspawn", callback); }
+    @Override public void onPlayerDespawn(@NotNull LuaValue callback) { AvalancheClient.getEventManager().subscribe("multiplayer.players.onplayerdespawn", callback); }
+    @Override public void onPlayerUpdate(@NotNull LuaValue callback) { AvalancheClient.getEventManager().subscribe("multiplayer.players.onplayerupdate", callback); }
+    @Override public void onPlayerMove(@NotNull LuaValue callback) { AvalancheClient.getEventManager().subscribe("multiplayer.players.onplayermove", callback); }
+    @Override public void onPlayerTeleport(@NotNull LuaValue callback) { AvalancheClient.getEventManager().subscribe("multiplayer.players.onplayerteleport", callback); }
+    @Override public void onPlayerDeath(@NotNull LuaValue callback) { AvalancheClient.getEventManager().subscribe("multiplayer.players.onplayerdeath", callback); }
+    @Override public void onPlayerRespawn(@NotNull LuaValue callback) { AvalancheClient.getEventManager().subscribe("multiplayer.players.onplayerrespawn", callback); }
+
+    // PlayerState
+    @Override public void onHealthChange(@NotNull LuaValue callback) { AvalancheClient.getEventManager().subscribe("multiplayer.playerstate.onhealthchange", callback); }
+    @Override public void onEquipmentChange(@NotNull LuaValue callback) { AvalancheClient.getEventManager().subscribe("multiplayer.playerstate.onequipmentchange", callback); }
+    @Override public void onHeldItemChange(@NotNull LuaValue callback) { AvalancheClient.getEventManager().subscribe("multiplayer.playerstate.onhelditemchange", callback); }
+    @Override public void onGameModeChange(@NotNull LuaValue callback) { AvalancheClient.getEventManager().subscribe("multiplayer.playerstate.ongamemodechange", callback); }
+    @Override public void onSneakChange(@NotNull LuaValue callback) { AvalancheClient.getEventManager().subscribe("multiplayer.playerstate.onsneakchange", callback); }
+    @Override public void onSprintChange(@NotNull LuaValue callback) { AvalancheClient.getEventManager().subscribe("multiplayer.playerstate.onsprintchange", callback); }
+
+    // List
+    @Override public void onPlayerListAdd(@NotNull LuaValue callback) { AvalancheClient.getEventManager().subscribe("multiplayer.list.onplayerlistadd", callback); }
+    @Override public void onPlayerListRemove(@NotNull LuaValue callback) { AvalancheClient.getEventManager().subscribe("multiplayer.list.onplayerlistremove", callback); }
+    @Override public void onPlayerListUpdate(@NotNull LuaValue callback) { AvalancheClient.getEventManager().subscribe("multiplayer.list.onplayerlistupdate", callback); }
 
     @NotNull
     private PlayerObject mapToPlayerObject(@NotNull final PlayerListEntry entry) {

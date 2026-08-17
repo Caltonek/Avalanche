@@ -48,12 +48,30 @@ public final class ScriptExecutor implements ScriptInstance {
             final String source = Files.readString(path);
             final Globals globals = JsePlatform.standardGlobals();
 
+            globals.STDOUT = new java.io.PrintStream(new java.io.OutputStream() {
+                private final StringBuilder sb = new StringBuilder();
+                @Override
+                public void write(int b) {
+                    if (b == '\r') return;
+
+                    if (b == '\n') {
+                        String msg = sb.toString();
+                        sb.setLength(0);
+                        var client = net.minecraft.client.MinecraftClient.getInstance();
+                        if (client.player != null) {
+                            client.execute(() -> client.player.sendMessage(net.minecraft.text.Text.literal(msg), false));
+                        }
+                    } else {
+                        sb.append((char) b);
+                    }
+                }
+            });
+
             globals.set("luajava", LuaValue.NIL);
             globals.set("dofile", LuaValue.NIL);
             globals.set("loadfile", LuaValue.NIL);
 
             globals.set("game", CoerceJavaToLua.coerce(new Game(minecraftService)));
-
             globals.set("minecraft", CoerceJavaToLua.coerce(minecraftService));
 
             final LuaValue script = globals.load(source, name);
@@ -62,6 +80,7 @@ public final class ScriptExecutor implements ScriptInstance {
             state = ScriptState.FAILED;
             throw new ScriptExecutionException("Unable to read script: " + name, exception);
         } catch (final RuntimeException exception) {
+            if (state == ScriptState.HALTED) return;
             state = ScriptState.FAILED;
             throw new ScriptExecutionException("Failed to execute script: " + name, exception);
         } finally {
@@ -71,10 +90,10 @@ public final class ScriptExecutor implements ScriptInstance {
 
     @Override
     public void halt() {
+        state = ScriptState.HALTED;
         if (executionTask != null) {
             executionTask.cancel(true);
         }
-        state = ScriptState.HALTED;
     }
 
     @Override

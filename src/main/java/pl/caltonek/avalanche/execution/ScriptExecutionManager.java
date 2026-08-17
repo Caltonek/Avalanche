@@ -1,12 +1,21 @@
 package pl.caltonek.avalanche.execution;
 
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.text.HoverEvent;
+import net.minecraft.text.MutableText;
+import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import pl.caltonek.avalanche.client.AvalancheClient;
-import pl.caltonek.avalanche.exceptions.ScriptAlreadyRunningException;
 import pl.caltonek.avalanche.execution.loader.ScriptLoader;
 import pl.caltonek.avalanche.execution.script.ScriptExecutor;
+import pl.caltonek.avalanche.execution.script.ScriptState;
+import pl.caltonek.avalanche.path.AvalanchePaths;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.List;
@@ -32,29 +41,76 @@ public final class ScriptExecutionManager {
         return this.scriptLoader.findAvailableScripts();
     }
 
-    public void execute(@NotNull final String scriptName) {
-        final String normalizedName = this.scriptLoader.normalizeScriptName(scriptName);
-        final Path scriptPath = this.scriptLoader.resolveScriptPath(scriptName);
+    public boolean execute(@NotNull final String scriptInput) {
+        Path scriptPath;
+        String scriptName;
 
-        final ScriptExecutor existingScript = this.activeScripts.get(normalizedName);
-        if (existingScript != null && existingScript.isRunning()) {
-            throw new ScriptAlreadyRunningException(normalizedName);
+        if (this.scriptLoader.isUrl(scriptInput)) {
+            try {
+                final String content = AvalancheClient.getMinecraftService().getHttp().getAsync(scriptInput);
+
+                final Path cacheDir = AvalanchePaths.SCRIPTS_DIR.resolve("cache");
+                if (!Files.exists(cacheDir)) Files.createDirectories(cacheDir);
+
+                scriptName = "remote_" + Integer.toHexString(scriptInput.hashCode()) + ".lua";
+                scriptPath = cacheDir.resolve(scriptName);
+
+                Files.writeString(scriptPath, content);
+            } catch (final Exception e) {
+                throw new RuntimeException("Failed to download script from URL: " + scriptInput, e);
+            }
+        } else {
+            scriptName = this.scriptLoader.normalizeScriptName(scriptInput);
+            scriptPath = this.scriptLoader.resolveScriptPath(scriptInput);
         }
 
-        final ScriptExecutor scriptExecutor = new ScriptExecutor(normalizedName, scriptPath);
-        this.activeScripts.put(normalizedName, scriptExecutor);
+        final boolean reloaded = this.activeScripts.containsKey(scriptName);
+
+        if (reloaded) {
+            this.halt(scriptName);
+        }
+
+        final ScriptExecutor scriptExecutor = new ScriptExecutor(scriptName, scriptPath);
+        this.activeScripts.put(scriptName, scriptExecutor);
 
         final var future = this.executorService.submit(() -> {
             try {
                 scriptExecutor.execute();
+            } catch (final Throwable throwable) {
+                this.halt(scriptName);
+
+                final StringWriter sw = new StringWriter();
+                throwable.printStackTrace(new PrintWriter(sw));
+
+                final String cleanStackTrace = sw.toString()
+                        .replace("\r", "")
+                        .replace("\t", "    ");
+
+                final var client = MinecraftClient.getInstance();
+                if (client.player != null) {
+                    client.execute(() -> {
+                        MutableText errorMsg = Text.literal("[Exec Error] " + throwable.getMessage())
+                                .formatted(Formatting.RED)
+                                .styled(style -> style.withHoverEvent(
+                                        new HoverEvent(
+                                                HoverEvent.Action.SHOW_TEXT,
+                                                Text.literal("§c" + cleanStackTrace)
+                                        )
+                                ));
+
+                        client.player.sendMessage(errorMsg, false);
+                    });
+                }
+                throwable.printStackTrace();
             } finally {
-                if (!scriptExecutor.isRunning()) {
-                    this.activeScripts.remove(normalizedName, scriptExecutor);
+                if (scriptExecutor.getState() == ScriptState.FAILED) {
+                    this.activeScripts.remove(scriptName, scriptExecutor);
                 }
             }
         });
 
         scriptExecutor.setExecutionTask(future);
+        return reloaded;
     }
 
     public void halt(@NotNull final String scriptName) {
@@ -64,13 +120,16 @@ public final class ScriptExecutionManager {
         if (scriptExecutor != null) {
             scriptExecutor.halt();
         }
-        AvalancheClient.getChatService().unregisterListeners(normalizedName);
+
+        AvalancheClient.getMinecraftService().unregisterScriptListeners(normalizedName);
+        AvalancheClient.getEventManager().unregisterScript(normalizedName);
     }
 
     public void haltAll() {
         this.activeScripts.values().forEach(ScriptExecutor::halt);
         this.activeScripts.clear();
-        AvalancheClient.getChatService().clearAllListeners();
+        AvalancheClient.getMinecraftService().clearAllListeners();
+        AvalancheClient.getEventManager().clearAll();
     }
 
     @NotNull
